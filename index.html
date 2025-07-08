@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Realm Online - Skill Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        .skill-level-box {
+            transition: all 0.2s ease-in-out;
+        }
+        .skill-level-box.selected {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+        .skill-level-box.free-level {
+             transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.5);
+        }
+        /* Custom Radio Button Styling */
+        .class-radio-label {
+            transition: all 0.2s ease-in-out;
+        }
+        .class-radio-input:checked + .class-radio-label {
+            background-color: #3b82f6; /* blue-600 */
+            color: #ffffff;
+            border-color: #60a5fa; /* blue-400 */
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-blue-400">The Realm Online</h1>
+            <p class="text-xl md:text-2xl text-gray-300">Skill Calculator</p>
+        </header>
+
+        <!-- Points Display -->
+        <div class="sticky top-0 z-10 bg-gray-900/80 backdrop-blur-sm py-4 mb-6 rounded-lg shadow-lg">
+            <div class="flex justify-center items-center space-x-4 md:space-x-8">
+                <div class="text-center">
+                    <span class="text-lg font-semibold text-gray-400">Points Spent</span>
+                    <p id="points-spent" class="text-4xl font-bold text-blue-400">0</p>
+                </div>
+                <div class="text-center">
+                    <span class="text-lg font-semibold text-gray-400">Points Remaining</span>
+                    <p id="points-remaining" class="text-4xl font-bold text-green-400">142</p>
+                </div>
+                <div class="text-center">
+                    <span class="text-lg font-semibold text-gray-400">Total Points</span>
+                    <p class="text-4xl font-bold text-gray-200">142</p>
+                </div>
+            </div>
+             <div id="warning-message" class="text-center text-red-500 font-semibold mt-2 h-6"></div>
+        </div>
+
+        <!-- Class Templates -->
+        <div class="mb-8 p-4 bg-gray-800 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold text-center mb-4 text-blue-300">Class Templates</h3>
+            <div id="class-selection" class="flex flex-wrap justify-center items-center gap-3">
+                <!-- Radio buttons will be injected here by JS -->
+            </div>
+        </div>
+
+        <!-- Skills Container -->
+        <div id="skills-container" class="space-y-4">
+            <!-- Skills will be dynamically inserted here -->
+        </div>
+
+        <!-- Reset Button -->
+        <div class="text-center mt-8">
+            <button id="reset-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105">
+                Reset All
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const skills = [
+                { name: 'Light Piercing' }, { name: 'Light One-Handed' }, { name: 'Light Two-Handed' },
+                { name: 'Heavy Two Handed' }, { name: 'Critical Strike' }, { name: 'Sorcery' },
+                { name: 'Elementalism' }, { name: 'Mysticism' }, { name: 'Thaumaturgy' },
+                { name: 'Theurgism' }, { name: 'Necromancy' }, { name: 'Meditation' }, { name: 'Healing' },
+                { name: 'Acrobatics' }, { name: 'Shield Usage' }, { name: 'Lockpicking' },
+                { name: 'Pickpocketing' }, { name: 'Disarm Traps' }, { name: 'Armorsmith' },
+                { name: 'Weaponsmith' }, { name: 'Leatherworker' }, { name: 'Seamster' }, { name: 'Alchemy' }
+            ];
+
+            const uniqueSkills = [...new Map(skills.map(item => [item['name'], item])).values()];
+
+            const skillLevels = [
+                { name: 'Basic', cost: 1, color: 'bg-gray-500', hover: 'hover:bg-gray-400' },
+                { name: 'Proficient', cost: 2, color: 'bg-green-600', hover: 'hover:bg-green-500' },
+                { name: 'Expert', cost: 4, color: 'bg-blue-600', hover: 'hover:bg-blue-500' },
+                { name: 'Master', cost: 7, color: 'bg-purple-600', hover: 'hover:bg-purple-500' },
+                { name: 'Grand Master', cost: 10, color: 'bg-yellow-600', hover: 'hover:bg-yellow-500' },
+                { name: 'Supreme GM', cost: 13, color: 'bg-red-600', hover: 'hover:bg-red-500' }
+            ];
+
+            const classTemplates = {
+                adventurer: { 'Light One-Handed': 1, 'Healing': 0, 'Acrobatics': 0, 'Elementalism': 1, 'Meditation': 0, 'Shield Usage': 0 },
+                warrior: { 'Light One-Handed': 0, 'Light Two-Handed': 1, 'Heavy Two Handed': 1, 'Healing': 0, 'Acrobatics': 0, 'Shield Usage': 0 },
+                wizard: { 'Light Piercing': 0, 'Sorcery': 0, 'Elementalism': 1, 'Mysticism': 0, 'Theurgism': 0, 'Meditation': 1 },
+                thief: { 'Light Piercing': 0, 'Light One-Handed': 0, 'Healing': 0, 'Acrobatics': 1, 'Disarm Traps': 0, 'Critical Strike': 1 }
+            };
+
+            const TOTAL_POINTS = 142;
+            let pointsSpent = 0;
+            let activeClass = null;
+            const skillSelections = {};
+
+            const pointsSpentEl = document.getElementById('points-spent');
+            const pointsRemainingEl = document.getElementById('points-remaining');
+            const skillsContainer = document.getElementById('skills-container');
+            const resetButton = document.getElementById('reset-button');
+            const warningMessageEl = document.getElementById('warning-message');
+            const classSelectionContainer = document.getElementById('class-selection');
+
+            function initialize() {
+                // Create class radio buttons
+                const classNames = ['None', 'Adventurer', 'Warrior', 'Wizard', 'Thief'];
+                classNames.forEach(name => {
+                    const value = name.toLowerCase();
+                    const wrapper = document.createElement('div');
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.id = `class-${value}`;
+                    input.name = 'class-template';
+                    input.value = value;
+                    input.className = 'sr-only class-radio-input';
+                    if (name === 'None') input.checked = true;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = `class-${value}`;
+                    label.className = 'class-radio-label cursor-pointer bg-gray-700 hover:bg-gray-600 text-gray-200 font-semibold py-2 px-4 border border-gray-600 rounded-lg shadow';
+                    label.textContent = name;
+                    
+                    wrapper.appendChild(input);
+                    wrapper.appendChild(label);
+                    classSelectionContainer.appendChild(wrapper);
+                });
+
+                // Create skill rows
+                uniqueSkills.forEach(skill => {
+                    skillSelections[skill.name] = -1;
+                    const skillRow = createSkillRow(skill);
+                    skillsContainer.appendChild(skillRow);
+                });
+                updatePointsDisplay();
+            }
+
+            function createSkillRow(skill) {
+                const row = document.createElement('div');
+                row.className = 'bg-gray-800 p-4 rounded-lg shadow-md flex flex-col md:flex-row items-center justify-between';
+                row.dataset.skillName = skill.name;
+                const skillNameEl = document.createElement('div');
+                skillNameEl.className = 'w-full md:w-1/4 font-bold text-lg text-center md:text-left mb-4 md:mb-0';
+                skillNameEl.textContent = skill.name;
+                row.appendChild(skillNameEl);
+                const levelsContainer = document.createElement('div');
+                levelsContainer.className = 'w-full md:w-3/4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2';
+                skillLevels.forEach((level, index) => {
+                    const levelBox = document.createElement('div');
+                    levelBox.className = `skill-level-box p-3 rounded-md cursor-pointer text-center text-sm ${level.color} ${level.hover}`;
+                    levelBox.dataset.levelIndex = index;
+                    levelBox.innerHTML = `<div class="font-semibold">${level.name}</div><div class="text-xs">(+${level.cost} pts)</div>`;
+                    levelBox.addEventListener('click', () => handleLevelClick(skill.name, index));
+                    levelsContainer.appendChild(levelBox);
+                });
+                row.appendChild(levelsContainer);
+                return row;
+            }
+
+            function handleLevelClick(skillName, levelIndex) {
+                const currentSelection = skillSelections[skillName];
+                const template = activeClass ? classTemplates[activeClass] : {};
+                const freeLevel = template[skillName] ?? -1;
+
+                if (currentSelection === levelIndex) {
+                    skillSelections[skillName] = freeLevel;
+                } else {
+                    skillSelections[skillName] = Math.max(levelIndex, freeLevel);
+                }
+                recalculateTotalPoints();
+                updateUI();
+            }
+
+            function recalculateTotalPoints() {
+                let newTotal = 0;
+                const template = activeClass ? classTemplates[activeClass] : {};
+
+                for (const skillName in skillSelections) {
+                    const selectedLevel = skillSelections[skillName];
+                    const freeLevel = template[skillName] ?? -1;
+
+                    if (selectedLevel > freeLevel) {
+                        for (let i = freeLevel + 1; i <= selectedLevel; i++) {
+                            newTotal += skillLevels[i].cost;
+                        }
+                    }
+                }
+                
+                if (newTotal > TOTAL_POINTS) {
+                    warningMessageEl.textContent = "Not enough points!";
+                } else {
+                    pointsSpent = newTotal;
+                    warningMessageEl.textContent = "";
+                }
+                updatePointsDisplay();
+            }
+
+            function updateUI() {
+                const template = activeClass ? classTemplates[activeClass] : {};
+                document.querySelectorAll('[data-skill-name]').forEach(row => {
+                    const skillName = row.dataset.skillName;
+                    const selectedLevel = skillSelections[skillName];
+                    const freeLevel = template[skillName] ?? -1;
+
+                    row.querySelectorAll('.skill-level-box').forEach(box => {
+                        const levelIndex = parseInt(box.dataset.levelIndex);
+                        
+                        box.classList.remove('selected', 'free-level', 'border-2', 'border-blue-400', 'border-yellow-400', 'bg-gray-700');
+                        box.classList.add(skillLevels[levelIndex].color, skillLevels[levelIndex].hover);
+
+                        if (levelIndex <= selectedLevel) {
+                            box.classList.remove(skillLevels[levelIndex].color, skillLevels[levelIndex].hover);
+                            box.classList.add('bg-gray-700');
+
+                            if (levelIndex <= freeLevel) {
+                                box.classList.add('free-level', 'border-2', 'border-yellow-400');
+                            } else {
+                                box.classList.add('selected', 'border-2', 'border-blue-400');
+                            }
+                        }
+                    });
+                });
+                updatePointsDisplay();
+            }
+
+            function updatePointsDisplay() {
+                const remaining = TOTAL_POINTS - pointsSpent;
+                pointsSpentEl.textContent = pointsSpent;
+                pointsRemainingEl.textContent = remaining;
+                pointsRemainingEl.classList.toggle('text-green-400', remaining >= 0);
+                pointsRemainingEl.classList.toggle('text-red-500', remaining < 0);
+            }
+
+            function applyClassTemplate() {
+                pointsSpent = 0;
+                for (const skillName in skillSelections) {
+                    skillSelections[skillName] = -1;
+                }
+                
+                const template = classTemplates[activeClass];
+                for (const skillName in template) {
+                    if (skillSelections.hasOwnProperty(skillName)) {
+                        skillSelections[skillName] = template[skillName];
+                    }
+                }
+                recalculateTotalPoints();
+                updateUI();
+            }
+
+            function hardReset(resetRadio = true) {
+                activeClass = null;
+                if (resetRadio) {
+                    document.getElementById('class-none').checked = true;
+                }
+                for (const skillName in skillSelections) {
+                    skillSelections[skillName] = -1;
+                }
+                pointsSpent = 0;
+                warningMessageEl.textContent = "";
+                updateUI();
+            }
+
+            // Event Listeners
+            resetButton.addEventListener('click', () => hardReset(true));
+            classSelectionContainer.addEventListener('change', (e) => {
+                if (e.target.name === 'class-template') {
+                    const selectedClass = e.target.value;
+                    if (selectedClass === 'none') {
+                        hardReset(false);
+                    } else {
+                        activeClass = selectedClass;
+                        applyClassTemplate();
+                    }
+                }
+            });
+
+            // Initial setup
+            initialize();
+        });
+    </script>
+</body>
+</html>
